@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Slim Sub Goal Bar</title>
+  <style>
+    :root {
+      --primary-color: #9147ff;
+      --secondary-color: rgba(20, 20, 25, 0.8);
+      --text-color: #ffffff;
+      --progress-color: #5a3da8;
+      --highlight-color: #bf94ff;
+      --empty-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .sub-goal-container {
+      width: 400px;
+      background: var(--secondary-color);
+      border-radius: 4px;
+      padding: 12px 15px;
+      position: relative;
+      border-left: 3px solid var(--primary-color);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 48px;
+    }
+    
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .goal-title {
+      color: var(--text-color);
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .goal-progress {
+      color: var(--highlight-color);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .progress-container {
+      height: 10px;
+      background: var(--empty-color);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-color), var(--progress-color));
+      border-radius: 3px 1.5px 1.5px 3px; /* Reduced right-side radius */
+      width: 2%;
+      min-width: 4px;
+      transition: width 0.5s ease;
+      position: relative;
+    }
+    
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      animation: shine 2s infinite;
+    }
+    
+    .celebration {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+    }
+    
+    @keyframes shine {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+    
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background-color: var(--highlight-color);
+      opacity: 0;
+      animation: confetti-fall 2.5s linear forwards;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    
+    .low-progress {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="sub-goal-container">
+    <div class="goal-header">
+      <h3 class="goal-title">SUBSCRIBER GOAL</h3>
+      <div class="goal-progress"><span id="current-subs">0</span>/<span id="goal-subs">50</span></div>
+    </div>
+    
+    <div class="progress-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    
+    <div class="celebration" id="celebration"></div>
+  </div>
+
+  <script>
+    const progressBar = document.getElementById('progress-bar');
+    const currentSubsEl = document.getElementById('current-subs');
+    const goalSubsEl = document.getElementById('goal-subs');
+    const celebrationEl = document.getElementById('celebration');
+    
+    // Configuration
+    let config = {
+      goal: 50,
+      current: 0,
+      minVisibleWidth: 2
+    };
+    
+    // Initialize the widget
+    function init() {
+      window.addEventListener('onEventReceived', function(event) {
+        if (event.detail.listener !== 'subscriber-latest') return;
+        
+        const data = event.detail.event;
+        if (data.bulkGifted) return;
+        
+        config.current += data.amount || 1;
+        updateProgress();
+        
+        if (config.current >= config.goal) {
+          triggerCelebration();
+        }
+      });
+      
+      goalSubsEl.textContent = config.goal;
+      updateProgress();
+      
+      if ((config.current / config.goal * 100) < 5) {
+        progressBar.classList.add('low-progress');
+      }
+    }
+    
+    function updateProgress() {
+      let percentage = (config.current / config.goal) * 100;
+      
+      if (percentage > 0 && percentage < config.minVisibleWidth) {
+        percentage = config.minVisibleWidth;
+      } else if (percentage === 0) {
+        percentage = 1;
+      }
+      
+      progressBar.style.width = `${percentage}%`;
+      currentSubsEl.textContent = config.current;
+      
+      if (percentage < 5) {
+        progressBar.classList.add('low-progress');
+      } else {
+        progressBar.classList.remove('low-progress');
+      }
+    }
+    
+    function triggerCelebration() {
+      celebrationEl.style.display = 'block';
+      celebrationEl.innerHTML = '';
+      
+      for (let i = 0; i < 40; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = `${Math.random() * 100}%`;
+        confetti.style.animationDelay = `${Math.random() * 1.5}s`;
+        confetti.style.backgroundColor = getRandomColor();
+        celebrationEl.appendChild(confetti);
+      }
+      
+      setTimeout(() => {
+        celebrationEl.style.display = 'none';
+      }, 2500);
+    }
+    
+    function getRandomColor() {
+      const colors = [
+        '#9147ff', '#bf94ff', '#ff47b3', '#47ffb3', 
+        '#ffd747', '#47a1ff', '#ff6347'
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+    
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
