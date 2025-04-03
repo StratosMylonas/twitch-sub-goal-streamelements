@@ -40,6 +40,7 @@ You can customize the widget's appearance by modifying the CSS variables in the 
 ```
 
 ## Demo
+![Screenshot 2025-04-03 132924](https://github.com/user-attachments/assets/a3b8bd3b-0f7e-4a4b-b4e8-bb5af1c8bb60)
 
 ## Technologies Used
 - **HTML/CSS**: For structure and styling.
